@@ -1,0 +1,77 @@
+{
+  "name": "build-runner",
+  "displayName": "Build Runner",
+  "description": "Easily run build_runner commands!",
+  "publisher": "blaxou",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.46.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blaxou/build-runner.git"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "build-runner.build",
+        "title": "Freezed: Build with build_runner"
+      }
+    ],
+    "configuration": {
+      "title": "Build Runner",
+      "properties": {
+        "freezed.useDeleteConflictingOutputs.build": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Use `--delete-conflicting-outputs` for the `build_runner build` command."
+        },
+        "freezed.useDeleteConflictingOutputs.watch": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Use `--delete-conflicting-outputs` for the `build_runner watch` command."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "build-runner.build",
+        "key": "Ctrl+Shift+B",
+        "mac": "Cmd+Shift+B"
+      },
+      {
+        "command": "build-runner.build_filters",
+        "key": "Ctrl+Alt+B",
+        "mac": "Cmd+Alt+B"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^8.0.4",
+    "@types/node": "^12.11.7",
+    "@types/vscode": "^1.46.0",
+    "@typescript-eslint/eslint-plugin": "^4.9.0",
+    "@typescript-eslint/parser": "^4.9.0",
+    "eslint": "^7.15.0",
+    "glob": "^7.1.6",
+    "mocha": "^8.1.3",
+    "typescript": "^4.1.2",
+    "vscode-test": "^1.4.1"
+  }
+}
