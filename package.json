@@ -28,12 +28,12 @@
     "configuration": {
       "title": "Build Runner",
       "properties": {
-        "freezed.useDeleteConflictingOutputs.build": {
+        "build-runner.useDeleteConflictingOutputs.build": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Use `--delete-conflicting-outputs` for the `build_runner build` command."
         },
-        "freezed.useDeleteConflictingOutputs.watch": {
+        "build-runner.useDeleteConflictingOutputs.watch": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Use `--delete-conflicting-outputs` for the `build_runner watch` command."

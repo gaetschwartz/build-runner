@@ -21,7 +21,7 @@ export class BuildRunnerWatch {
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
-    this.statusBar.command = "freezed.build_runner_watch";
+    this.statusBar.command = "build-runner.watch";
     this.statusBar.tooltip = "Watch with build_runner";
     this.statusBar.text = this.text();
     context.subscriptions.push(this.statusBar);
