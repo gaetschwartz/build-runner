@@ -7,6 +7,7 @@
 * Launch a `build_runner build` with `CTRL+SHIFT+B` (`CMD+SHIFT+B`).
 
 * Start watching your entire project using `build_runner watch` by pressing the extension button on the status bar on the bottom.
+
 ![](assets/screen2.png)
 
 ## 📦 How to setup

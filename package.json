@@ -11,6 +11,14 @@
     "type": "git",
     "url": "https://github.com/gaetschwartz/build-runner.git"
   },
+  "keywords": [
+    "build_runner",
+    "freezed",
+    "dart",
+    "flutter",
+    "build"
+  ],
+  "icon": "assets/logo.png",
   "categories": [
     "Other"
   ],
