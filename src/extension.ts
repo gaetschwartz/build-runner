@@ -127,7 +127,7 @@ export function getFilters(): Array<string> | null {
 	const text = vscode.window.activeTextEditor?.document.getText();
 	const parts = text
 		?.match(/^part ['"].*['"];$/gm)
-		?.map((e) => e.replace(/^part ['"]/, "").replace(/['"]];$/, ""));
+		?.map((e) => e.replace(/^part ['"]/, "").replace(/['"];$/, ""));
 
 	const hasParts = !(
 		parts === undefined ||
