@@ -30,18 +30,25 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	const config = vscode.workspace.getConfiguration('build-runner');
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
 
-	const filters = useFilters ? getFilters() : null;
 
 	await vscode.window.withProgress(opts, async (p, _token) => {
 		p.report({ message: "Initializing ..." });
 		await new Promise<void>(async (r) => {
 			const cwd = getDartProjectPath();
+			const filters = useFilters ? getFilters(cwd) : null;
 			console.log(`cwd=${cwd}`);
 			const cmd = 'dart';
 			let args: string[] = ["run", "build_runner", "build"];
 
 			if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
-			if (filters !== null) { args.push(...filters.map((f) => `--build-filter="${f}"`)); }
+			if (filters !== null) {
+
+				filters.forEach(f => {
+					args.push("--build-filter");
+					args.push(f);
+				});
+
+			}
 
 			console.log(cmd + " " + args.join(" "));
 
@@ -51,6 +58,9 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 				computeCommandName(cmd),
 				args,
 				{ cwd: cwd });
+
+			console.log("Ran " + child.spawnargs.join(' '));
+
 			let mergedErr = "";
 			let lastOut: string;
 
@@ -76,7 +86,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	});
 }
 
-export function getFilters(): Array<string> | null {
+export function getFilters(projectPath: string | undefined): Array<string> | null {
 	// The code you place here will be executed every time your command is executed
 	const uri = vscode.window.activeTextEditor?.document.uri;
 	const path = uri?.path;
@@ -137,9 +147,17 @@ export function getFilters(): Array<string> | null {
 
 	if (!hasParts) { return [`${bottomLevelFolder}/**`]; }
 
-	const buildFilters = parts!.map((e) => `${bottomLevelFolder}/${e}`);
+	const projPath = projectPath === undefined ? undefined : vscode.Uri.file(projectPath).path;
+	const buildFilters = parts!.map((e) => `${bottomLevelFolder}/${e}`).map((e) => {
+		const p = vscode.Uri.file(e).path;
+		if (projPath === undefined) { return p; } else {
+			const rel = p.replace(projPath, "");
+			const rel2 = rel.startsWith("/") ? rel.slice(1) : rel;
+			return rel2;
+		}
+	});
 
-	return [...buildFilters];
+	return buildFilters;
 }
 
 export function getDartProjectPath(): string | undefined {
