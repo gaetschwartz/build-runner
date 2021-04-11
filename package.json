@@ -3,7 +3,7 @@
   "displayName": "Build Runner",
   "description": "Easily run build_runner commands!",
   "publisher": "blaxou",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.46.0"
   },
