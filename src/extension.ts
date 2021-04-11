@@ -4,6 +4,8 @@ import p = require('path');
 import fs = require('fs');
 import cp = require('child_process');
 
+export const output = vscode.window.createOutputChannel("build_runner");
+
 export function activate(context: vscode.ExtensionContext) {
 
 	const watch = new BuildRunnerWatch(context);
@@ -25,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 interface BuildRunnerOptions { useFilters: boolean }
 async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
-	const config = vscode.workspace.getConfiguration('freezed');
+	const config = vscode.workspace.getConfiguration('build-runner');
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
 
 	const filters = useFilters ? getFilters() : null;
@@ -42,6 +44,8 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 			if (filters !== null) { args.push(...filters.map((f) => `--build-filter="${f}"`)); }
 
 			console.log(cmd + " " + args.join(" "));
+
+			output.appendLine(`Running ${cmd} ${args.join(" ")} in ${cwd}.`);
 
 			const child = cp.spawn(
 				computeCommandName(cmd),

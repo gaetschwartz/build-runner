@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { computeCommandName, getDartProjectPath, isWin32 } from './extension';
+import { computeCommandName, getDartProjectPath, isWin32, output } from './extension';
 import { SigintSender } from './sigint';
 import cp = require('child_process');
 
@@ -26,7 +26,7 @@ export class BuildRunnerWatch {
     this.statusBar.text = this.text();
     context.subscriptions.push(this.statusBar);
 
-    this.output = vscode.window.createOutputChannel("freezed & build_runner");
+
 
     this.sigintSender = new SigintSender(
       context,
@@ -40,7 +40,7 @@ export class BuildRunnerWatch {
   readonly watchString = "$(eye) Watch";
   readonly loadingString = "$(loading~spin) Initializing";
   readonly removeWatchString = "$(eye-closed) Remove watch";
-  readonly output: vscode.OutputChannel;
+
   readonly statusBar: vscode.StatusBarItem;
 
   show(): void {
@@ -66,10 +66,10 @@ export class BuildRunnerWatch {
   async toggle(): Promise<void> {
     switch (this.state) {
       case State.idle:
-        this.output.show();
+        output.show();
         return this.watch();
       case State.watching:
-        this.output.show();
+        output.show();
         return this.removeWatch();
       case State.initializing:
         break;
@@ -92,7 +92,7 @@ export class BuildRunnerWatch {
         if (exit.code === 0) {
           console.log('Success, cleaning...');
           this.process = undefined;
-          this.output.appendLine("Stopped watching");
+          output.appendLine("Stopped watching");
           this.setState(State.idle);
         }
       } catch (error) {
@@ -147,7 +147,7 @@ export class BuildRunnerWatch {
   }
 
   async watch(): Promise<void> {
-    this.output.clear();
+    output.clear();
 
     if (isWin32) {
       const risk = "I take the risk.";
@@ -155,7 +155,7 @@ export class BuildRunnerWatch {
       if (res !== risk) { return; }
     }
 
-    const config = vscode.workspace.getConfiguration('freezed');
+    const config = vscode.workspace.getConfiguration('build-runner');
     let cwd = getDartProjectPath();
 
     if (cwd === undefined) {
@@ -181,13 +181,13 @@ export class BuildRunnerWatch {
       const string = data.toString();
       console.log('stdout: ' + string);
       if (this.state !== State.watching) { this.setState(State.watching); }
-      this.output.append(string);
+      output.append(string);
     });
 
     this.process.stderr.on('data', (data) => {
       const err = data.toString();
       console.log('stderr: ' + err);
-      this.output.append(err);
+      output.append(err);
     });
 
     this.process.stdin.on('data', (data) => {
@@ -202,8 +202,8 @@ export class BuildRunnerWatch {
       console.log("close: " + code);
 
       if (code !== 0) {
-        this.output.appendLine("\nCommand exited with code " + code);
-        this.output.show();
+        output.appendLine("\nCommand exited with code " + code);
+        output.show();
       }
 
       // cleanup

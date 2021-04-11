@@ -3,7 +3,7 @@
   "displayName": "Build Runner",
   "description": "Easily run build_runner commands!",
   "publisher": "gaetschwartz",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "engines": {
     "vscode": "^1.46.0"
   },
@@ -30,7 +30,7 @@
     "commands": [
       {
         "command": "build-runner.build",
-        "title": "Freezed: Build with build_runner"
+        "title": "Build Runner: Build"
       }
     ],
     "configuration": {
