@@ -102,9 +102,7 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 	/// Guard against no workspace name
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri!);
 	const workspaceName = workspaceFolder?.name;
-	if (workspaceName === undefined) { return []; }
-
-	console.log(workspaceName);
+	if (workspaceName !== undefined) { console.log(`workspaceName=${workspaceName}`); }
 
 	/// Guard against no workspace path
 	const workspacePath = workspaceFolder?.uri.path;
@@ -168,20 +166,23 @@ export function getDartProjectPath(): string | undefined {
 
 	console.log('document_path=' + path);
 
-	/// Guard against welcome screen
 	const isWelcomeScreen = path === undefined;
-	if (isWelcomeScreen) { return undefined; }
-
-	/// Guard against untitled files
 	const isUntitled = document?.isUntitled;
-	if (isUntitled) { return undefined; }
+
+	/// Guard against welcome screen
+	/// Guard against untitled files
+	if (isWelcomeScreen || isUntitled) {
+		const folders = vscode.workspace.workspaceFolders;
+		if (folders === undefined) { return undefined; }
+		const workspaceFolder = folders[0].uri.fsPath;
+		log(`No file selected, using the workspace path: ${workspaceFolder}`);
+		return workspaceFolder;
+	}
 
 	/// Guard against no workspace name
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri!);
 	const workspaceName = workspaceFolder?.name;
-	if (workspaceName === undefined) { return undefined; }
-
-	console.log(`workspaceName=${workspaceName}`);
+	if (workspaceName !== undefined) { console.log(`workspaceName=${workspaceName}`); }
 
 	/// Guard against no workspace path
 	const workspacePath = workspaceFolder?.uri.path;
@@ -214,6 +215,17 @@ export function getDartProjectPath(): string | undefined {
 	}
 	return undefined;
 }
+
+
+
+export function log(s: any, show?: boolean) {
+	console.log(s);
+	output.appendLine(s);
+	if (show === true) { output.show(); }
+}
+
+
+
 
 export let isWin32 = process.platform === "win32";
 export let computeCommandName = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
