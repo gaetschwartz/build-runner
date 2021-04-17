@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { computeCommandName, getDartProjectPath, isWin32, log, output } from './extension';
+import { COMMANDS, dartCmd, extensionID, getDartProjectPath, isWin32, log, output } from './extension';
 import { SigintSender } from './sigint';
 import cp = require('child_process');
 
@@ -21,12 +21,10 @@ export class BuildRunnerWatch {
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
-    this.statusBar.command = "build-runner.watch";
+    this.statusBar.command = COMMANDS.watch;
     this.statusBar.tooltip = "Watch with build_runner";
     this.statusBar.text = this.text();
     context.subscriptions.push(this.statusBar);
-
-
 
     this.sigintSender = new SigintSender(
       context,
@@ -155,7 +153,7 @@ export class BuildRunnerWatch {
       if (res !== risk) { return; }
     }
 
-    const config = vscode.workspace.getConfiguration('build-runner');
+    const config = vscode.workspace.getConfiguration(extensionID);
     let cwd = getDartProjectPath();
 
     if (cwd === undefined) {
@@ -165,7 +163,7 @@ export class BuildRunnerWatch {
 
     console.log("cwd: " + cwd);
 
-    const cmd = computeCommandName('dart');
+    const cmd = dartCmd;
     const args: string[] = ["run", "build_runner", "watch"];
     const opts: cp.SpawnOptionsWithoutStdio = { cwd: cwd };
     if (config.get("useDeleteConflictingOutputs.watch") === true) { args.push("--delete-conflicting-outputs"); }

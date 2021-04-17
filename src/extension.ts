@@ -5,19 +5,33 @@ import fs = require('fs');
 import cp = require('child_process');
 
 export const output = vscode.window.createOutputChannel("build_runner");
+export const extensionID = "build-runner";
+export const COMMANDS = {
+	watch: `${extensionID}.watch`,
+	build: `${extensionID}.build`,
+	buildFilters: `${extensionID}.build_filters`,
+};
+export function log(s: any, show?: boolean) {
+	console.log(s);
+	output.appendLine(s);
+	if (show === true) { output.show(); }
+}
+export const isWin32 = process.platform === "win32";
+export const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
+export const dartCmd = batchCommand('dart');
 
 export function activate(context: vscode.ExtensionContext) {
 
 	const watch = new BuildRunnerWatch(context);
 	watch.show();
 
-	let watchBuildRunner = vscode.commands.registerCommand("build-runner.watch", async () => await watch.toggle());
+	const watchBuildRunner = vscode.commands.registerCommand(COMMANDS.watch, async () => await watch.toggle());
 
-	let activateBuilder = vscode.commands.registerCommand('build-runner.build', async () =>
+	const activateBuilder = vscode.commands.registerCommand(COMMANDS.build, async () =>
 		await buildRunnerBuild({ useFilters: false })
 	);
 
-	let activateFastBuilder = vscode.commands.registerCommand('build-runner.build_filters', async () =>
+	const activateFastBuilder = vscode.commands.registerCommand(COMMANDS.buildFilters, async () =>
 		await buildRunnerBuild({ useFilters: true })
 	);
 
@@ -27,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 interface BuildRunnerOptions { useFilters: boolean }
 async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
-	const config = vscode.workspace.getConfiguration('build-runner');
+	const config = vscode.workspace.getConfiguration(extensionID);
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
 
 	var cwd = getDartProjectPath();
@@ -43,7 +57,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	const filters = useFilters ? getFilters(cwd) : null;
 	console.log(`cwd=${cwd}`);
 
-	const cmd = computeCommandName('dart');
+	const cmd = dartCmd;
 	let args: string[] = ["run", "build_runner", "build"];
 
 	if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
@@ -230,16 +244,5 @@ export function getDartProjectPath(): string | undefined {
 	}
 	return undefined;
 }
-
-
-
-export function log(s: any, show?: boolean) {
-	console.log(s);
-	output.appendLine(s);
-	if (show === true) { output.show(); }
-}
-
-export let isWin32 = process.platform === "win32";
-export let computeCommandName = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
 
 export function deactivate() { }
