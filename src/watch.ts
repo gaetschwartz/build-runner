@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { computeCommandName, getDartProjectPath, isWin32, output } from './extension';
+import { computeCommandName, getDartProjectPath, isWin32, log, output } from './extension';
 import { SigintSender } from './sigint';
 import cp = require('child_process');
 
@@ -163,16 +163,16 @@ export class BuildRunnerWatch {
       if (uri === undefined) { return; } else { cwd = uri.fsPath; }
     }
 
-    console.log("Cwd: " + cwd);
+    console.log("cwd: " + cwd);
 
-    const cmd = 'dart';
-    let args: string[] = ["run", "build_runner", "watch"];
+    const cmd = computeCommandName('dart');
+    const args: string[] = ["run", "build_runner", "watch"];
     const opts: cp.SpawnOptionsWithoutStdio = { cwd: cwd };
     if (config.get("useDeleteConflictingOutputs.watch") === true) { args.push("--delete-conflicting-outputs"); }
 
-    console.log(computeCommandName(cmd), args);
+    log(`Spawning \`${cmd} ${args.join(' ')}\` in ${opts.cwd}`);
 
-    this.process = cp.spawn(computeCommandName(cmd), args, opts);
+    this.process = cp.spawn(cmd, args, opts);
     this.setState(State.initializing);
 
     console.log(`Started with PID: ${this.process!.pid}`);

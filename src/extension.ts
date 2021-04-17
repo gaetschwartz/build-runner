@@ -30,35 +30,38 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	const config = vscode.workspace.getConfiguration('build-runner');
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
 
+	var cwd = getDartProjectPath();
+	if (cwd === undefined) {
+		const selectFolder = "Select folder";
+		const res = await vscode.window.showInformationMessage("Failed to detect where to run build_runner.", selectFolder);
+		if (res === selectFolder) {
+			cwd = await queryFolder();
+		}
+	}
+
+	if (cwd === undefined) { log('Failed to infer where to run build_runner.'); return; }
+	const filters = useFilters ? getFilters(cwd) : null;
+	console.log(`cwd=${cwd}`);
+
+	const cmd = computeCommandName('dart');
+	let args: string[] = ["run", "build_runner", "build"];
+
+	if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
+	filters?.forEach(f => {
+		args.push("--build-filter");
+		args.push(f);
+	});
+
 
 	await vscode.window.withProgress(opts, async (p, _token) => {
 		p.report({ message: "Initializing ..." });
 		await new Promise<void>(async (r) => {
-			const cwd = getDartProjectPath();
-			const filters = useFilters ? getFilters(cwd) : null;
-			console.log(`cwd=${cwd}`);
-			const cmd = 'dart';
-			let args: string[] = ["run", "build_runner", "build"];
 
-			if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
-			if (filters !== null) {
-
-				filters.forEach(f => {
-					args.push("--build-filter");
-					args.push(f);
-				});
-
-			}
-
-			console.log(cmd + " " + args.join(" "));
-
-			output.appendLine(`Running ${cmd} ${args.join(" ")} in ${cwd}.`);
-
+			log(`Spawning \`${cmd} ${args.join(" ")}\` in ${cwd}`);
 			const child = cp.spawn(
-				computeCommandName(cmd),
+				cmd,
 				args,
 				{ cwd: cwd });
-
 			console.log("Ran " + child.spawnargs.join(' '));
 
 			let mergedErr = "";
@@ -77,13 +80,29 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 
 			child.on('close', (code) => {
 				console.log("close: " + code);
-				r(undefined);
+				r();
 				if (code !== 0) { vscode.window.showErrorMessage("Failed: " + mergedErr, "Close"); } else { vscode.window.showInformationMessage(lastOut); }
 			});
 
 		});
 
 	});
+}
+
+async function queryFolder(): Promise<string | undefined> {
+	const folders = vscode.workspace.workspaceFolders;
+	const defaultFolder = folders === undefined ? undefined : folders[0].uri;
+
+	const folder = await vscode.window.showOpenDialog({
+		defaultUri: defaultFolder,
+		canSelectFiles: false,
+		canSelectFolders: true,
+		canSelectMany: false,
+		title: "Select where to run build_runner",
+		openLabel: "Select",
+	});
+	if (folder === undefined) { return undefined; }
+	return folder[0].fsPath;
 }
 
 export function getFilters(projectPath: string | undefined): Array<string> | null {
@@ -172,11 +191,7 @@ export function getDartProjectPath(): string | undefined {
 	/// Guard against welcome screen
 	/// Guard against untitled files
 	if (isWelcomeScreen || isUntitled) {
-		const folders = vscode.workspace.workspaceFolders;
-		if (folders === undefined) { return undefined; }
-		const workspaceFolder = folders[0].uri.fsPath;
-		log(`No file selected, using the workspace path: ${workspaceFolder}`);
-		return workspaceFolder;
+		return undefined;
 	}
 
 	/// Guard against no workspace name
@@ -223,9 +238,6 @@ export function log(s: any, show?: boolean) {
 	output.appendLine(s);
 	if (show === true) { output.show(); }
 }
-
-
-
 
 export let isWin32 = process.platform === "win32";
 export let computeCommandName = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
