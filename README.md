@@ -1,8 +1,8 @@
-
-
 # Build Runner for VSCode
 
 ### 🔨 Run [build_runner](https://pub.dev/packages/build_runner) commands conveniently.
+
+### [📦 Get it on the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=GaetSchwartz.build-runner)
 
 ## 🌟 Features
 
