@@ -59,7 +59,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	const config = vscode.workspace.getConfiguration(extensionID);
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
 
-	var cwd = getDartProjectPath();
+	let cwd = getDartProjectPath();
 	if (cwd === undefined) {
 		const selectFolder = "Select folder";
 		const res = await vscode.window.showInformationMessage("Failed to detect where to run build_runner.", selectFolder);
@@ -236,6 +236,7 @@ export function getDartProjectPath(): string | undefined {
 	/// Guard against welcome screen
 	/// Guard against untitled files
 	if (isWelcomeScreen || isUntitled) {
+		console.log(`isWelcomeScreen=${isWelcomeScreen}, isUntitled=${isUntitled}`);
 		return undefined;
 	}
 
@@ -246,7 +247,10 @@ export function getDartProjectPath(): string | undefined {
 
 	/// Guard against no workspace path
 	const workspacePath = workspaceFolder?.uri.path;
-	if (workspacePath === undefined) { return undefined; }
+	if (workspacePath === undefined) {
+		console.log("workspace has no path");
+		return undefined;
+	}
 
 	console.log(`workspacePath=${workspacePath}`);
 
@@ -256,10 +260,6 @@ export function getDartProjectPath(): string | undefined {
 
 	console.log(`segments=${segments}`);
 
-	/// Guard against no top level folder
-	const hasTopLevelFolder = segments.length > 1;
-	if (!hasTopLevelFolder) { return undefined; }
-
 	const pubspecSuffix = 'pubspec.yaml';
 
 	if (fs.existsSync(workspacePath! + pubspecSuffix)) { return workspacePath; }
@@ -267,11 +267,11 @@ export function getDartProjectPath(): string | undefined {
 	const walkSegments: string[] = [];
 	for (let i = 0; i < segments.length; i++) {
 		const s = segments[i];
+		const projectPath = vscode.Uri.file(p.join(workspacePath, ...walkSegments));
+		const pubspec = vscode.Uri.joinPath(projectPath, pubspecSuffix);
+		console.log('Looking for ' + pubspec.fsPath);
+		if (fs.existsSync(pubspec.fsPath)) { console.log('Found it!'); return projectPath.fsPath; }
 		walkSegments.push(s);
-		const projectPath = vscode.Uri.file(p.join(workspacePath, ...walkSegments)).fsPath;
-		const pubspec = p.join(projectPath, pubspecSuffix);
-		console.log('Looking for ' + pubspec);
-		if (fs.existsSync(pubspec)) { console.log('Found it!'); return projectPath; }
 	}
 	return undefined;
 }
