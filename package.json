@@ -38,7 +38,8 @@
       "properties": {
         "build-runner.flutterPath": {
           "type": "string",
-          "description": "Flutter path. Make sure to set this on Linux if you installed Flutter using snap."
+          "description": "Flutter path. Make sure to set this on Linux if you installed Flutter using snap.",
+          "scope": "machine-overridable"
         },
         "build-runner.commandToUse": {
           "type": "string",

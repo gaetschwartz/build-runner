@@ -36,7 +36,10 @@ export const settings = {
 	get commandToUse() { return vscode.workspace.getConfiguration(extensionID).get<ShellCommands>("commandToUse", "flutter"); },
 	setCommandToUse(cmd: ShellCommands) { return vscode.workspace.getConfiguration(extensionID).update("commandToUse", cmd); },
 
-	get flutterPath() { return vscode.workspace.getConfiguration(extensionID).get<string | undefined>("flutterPath"); },
+	get flutterPath() {
+		const p = vscode.workspace.getConfiguration(extensionID).get<string | undefined>("flutterPath");
+		return p === "" ? undefined : p;
+	},
 	setFlutterPath(path: string) { return vscode.workspace.getConfiguration(extensionID).update("flutterPath", path); },
 };
 export function log(s: any, show?: boolean) {
@@ -130,11 +133,12 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 			child.on('close', async (code) => {
 				console.log("close: " + code);
 				r();
-				await vscode.window.showErrorMessage("Failed: " + mergedErr, "Close");
 
 				if (code !== 0) {
+					await vscode.window.showErrorMessage("Failed: " + mergedErr, "Close");
+
 					const path = process.env.PATH;
-					if (isLinux && !path?.includes("flutter") && settings.flutterPath === undefined) {
+					if (isLinux && settings.commandToUse === "flutter" && !path?.includes("flutter") && settings.flutterPath === undefined) {
 						const selectFlutter = "Enter flutter path";
 						const res = await vscode.window.showInformationMessage("Flutter doesn't seem to be in the path. You probably installed Flutter using snap.", selectFlutter);
 						if (res === selectFlutter) {
@@ -145,7 +149,6 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 							}
 						}
 					}
-
 
 					if (
 						settings.commandToUse === "dart" &&
