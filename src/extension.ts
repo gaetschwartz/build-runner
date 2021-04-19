@@ -16,6 +16,15 @@ export function pubCommand(shellCommand: ShellCommands): string[] {
 	}
 }
 
+export function command(shellCommand: ShellCommands): string {
+	switch (shellCommand) {
+		case "dart":
+			return batchCommand("dart");
+		case "flutter":
+			return settings.flutterPath ?? batchCommand("flutter");
+	}
+}
+
 export const output = vscode.window.createOutputChannel("build_runner");
 export const extensionID = "build-runner";
 export const COMMANDS = {
@@ -25,7 +34,10 @@ export const COMMANDS = {
 };
 export const settings = {
 	get commandToUse() { return vscode.workspace.getConfiguration(extensionID).get<ShellCommands>("commandToUse", "flutter"); },
-	setCommandToUse(cmd: ShellCommands) { return vscode.workspace.getConfiguration(extensionID).update("commandToUse", cmd); }
+	setCommandToUse(cmd: ShellCommands) { return vscode.workspace.getConfiguration(extensionID).update("commandToUse", cmd); },
+
+	get flutterPath() { return vscode.workspace.getConfiguration(extensionID).get<string | undefined>("flutterPath"); },
+	setFlutterPath(path: string) { return vscode.workspace.getConfiguration(extensionID).update("flutterPath", path); },
 };
 export function log(s: any, show?: boolean) {
 	console.log(s);
@@ -33,7 +45,8 @@ export function log(s: any, show?: boolean) {
 	if (show === true) { output.show(); }
 }
 export const isWin32 = process.platform === "win32";
-export const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
+export const isLinux = process.platform === "linux";
+const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -74,7 +87,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	const filters = useFilters ? getFilters(cwd) : null;
 
 	const cmdToUse = settings.commandToUse;
-	const cmd = batchCommand(cmdToUse);
+	const cmd = command(cmdToUse);
 	let args: string[] = [...pubCommand(cmdToUse), "build_runner", "build"];
 
 	if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
@@ -89,6 +102,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 		await new Promise<void>(async (r) => {
 
 			log(`Spawning \`${cmd} ${args.join(" ")}\` in \`${cwd}\``);
+
 			const child = cp.spawn(
 				cmd,
 				args,
@@ -108,8 +122,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 				mergedErr += data;
 			});
 
-			child.on("error", async (err) => {
-				console.log(`PATH=${process.env.PATH}`);
+			child.on("error", (err) => {
 				console.error(err);
 				r();
 			});
@@ -117,8 +130,23 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 			child.on('close', async (code) => {
 				console.log("close: " + code);
 				r();
+				await vscode.window.showErrorMessage("Failed: " + mergedErr, "Close");
+
 				if (code !== 0) {
-					await vscode.window.showErrorMessage("Failed: " + mergedErr, "Close");
+					const path = process.env.PATH;
+					if (isLinux && !path?.includes("flutter") && settings.flutterPath === undefined) {
+						const selectFlutter = "Enter flutter path";
+						const res = await vscode.window.showInformationMessage("Flutter doesn't seem to be in the path. You probably installed Flutter using snap.", selectFlutter);
+						if (res === selectFlutter) {
+							let path = await vscode.window.showInputBox({ prompt: "Enter Flutter's path (output of `flutter sdk-path`)" });
+							if (path !== undefined) {
+								if (!fs.existsSync(path)) { path += "/bin/flutter"; }
+								if (fs.existsSync(path)) { await settings.setFlutterPath(path); } else { vscode.window.showErrorMessage("This doesn't seem to be a valid path!"); }
+							}
+						}
+					}
+
+
 					if (
 						settings.commandToUse === "dart" &&
 						(mergedErr.includes("Could not find a file") || mergedErr.includes("pubspec.yaml"))
