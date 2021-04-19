@@ -4,12 +4,28 @@ import p = require('path');
 import fs = require('fs');
 import cp = require('child_process');
 
+
+type ShellCommands = "flutter" | "dart";
+
+export function pubCommand(shellCommand: ShellCommands): string[] {
+	switch (shellCommand) {
+		case "dart":
+			return ["run"];
+		case "flutter":
+			return ["pub", "run"];
+	}
+}
+
 export const output = vscode.window.createOutputChannel("build_runner");
 export const extensionID = "build-runner";
 export const COMMANDS = {
 	watch: `${extensionID}.watch`,
 	build: `${extensionID}.build`,
 	buildFilters: `${extensionID}.build_filters`,
+};
+export const settings = {
+	get commandToUse() { return vscode.workspace.getConfiguration(extensionID).get<ShellCommands>("commandToUse", "flutter"); },
+	setCommandToUse(cmd: ShellCommands) { return vscode.workspace.getConfiguration(extensionID).update("commandToUse", cmd); }
 };
 export function log(s: any, show?: boolean) {
 	console.log(s);
@@ -18,7 +34,6 @@ export function log(s: any, show?: boolean) {
 }
 export const isWin32 = process.platform === "win32";
 export const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
-export const dartCmd = batchCommand('dart');
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -57,8 +72,9 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	const filters = useFilters ? getFilters(cwd) : null;
 	console.log(`cwd=${cwd}`);
 
-	const cmd = dartCmd;
-	let args: string[] = ["run", "build_runner", "build"];
+	const cmdToUse = settings.commandToUse;
+	const cmd = batchCommand(cmdToUse);
+	let args: string[] = [...pubCommand(cmdToUse), "build_runner", "build"];
 
 	if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
 	filters?.forEach(f => {
@@ -92,10 +108,25 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 				mergedErr += data;
 			});
 
-			child.on('close', (code) => {
+			child.on('close', async (code) => {
 				console.log("close: " + code);
 				r();
-				if (code !== 0) { vscode.window.showErrorMessage("Failed: " + mergedErr, "Close"); } else { vscode.window.showInformationMessage(lastOut); }
+				if (code !== 0) {
+					await vscode.window.showErrorMessage("Failed: " + mergedErr, "Close");
+					if (
+						settings.commandToUse === "dart" &&
+						(mergedErr.includes("Could not find a file") || mergedErr.includes("pubspec.yaml"))
+					) {
+						const switchToFlutter = "Switch to flutter";
+						const res = await vscode.window.showInformationMessage("You seem to have an issue with dart, do you want to try to use flutter instead ?", switchToFlutter);
+						if (res === switchToFlutter) {
+							await settings.setCommandToUse("flutter");
+							buildRunnerBuild({ useFilters: useFilters });
+						}
+					}
+				} else {
+					vscode.window.showInformationMessage(lastOut);
+				}
 			});
 
 		});

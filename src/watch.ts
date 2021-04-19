@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { COMMANDS, dartCmd, extensionID, getDartProjectPath, isWin32, log, output } from './extension';
+import { batchCommand, COMMANDS, extensionID, getDartProjectPath, isWin32, log, output, pubCommand, settings } from './extension';
 import { SigintSender } from './sigint';
 import cp = require('child_process');
 
@@ -163,8 +163,9 @@ export class BuildRunnerWatch {
 
     console.log("cwd: " + cwd);
 
-    const cmd = dartCmd;
-    const args: string[] = ["run", "build_runner", "watch"];
+    const cmdToUse = settings.commandToUse;
+    const cmd = batchCommand(cmdToUse);
+    const args: string[] = [...pubCommand(cmdToUse), "build_runner", "watch"];
     const opts: cp.SpawnOptionsWithoutStdio = { cwd: cwd };
     if (config.get("useDeleteConflictingOutputs.watch") === true) { args.push("--delete-conflicting-outputs"); }
 

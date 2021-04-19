@@ -36,6 +36,15 @@
     "configuration": {
       "title": "Build Runner",
       "properties": {
+        "build-runner.commandToUse": {
+          "type": "string",
+          "enum": [
+            "flutter",
+            "dart"
+          ],
+          "default": "flutter",
+          "markdownDescription": "Choose which command to use to run `build_runner` commands."
+        },
         "build-runner.useDeleteConflictingOutputs.build": {
           "type": "boolean",
           "default": false,
