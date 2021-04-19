@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { command, COMMANDS, extensionID, getDartProjectPath, isWin32, log, output, pubCommand, settings } from './extension';
+import { getDartProjectPath } from './extension';
 import { SigintSender } from './sigint';
+import { command, COMMANDS, deleteConflictingOutputsSuffix, isWin32, log, output, pubCommand, settings } from "./utils";
 import cp = require('child_process');
 
 enum State { initializing, watching, idle, }
@@ -153,7 +154,6 @@ export class BuildRunnerWatch {
       if (res !== risk) { return; }
     }
 
-    const config = vscode.workspace.getConfiguration(extensionID);
     let cwd = getDartProjectPath();
 
     if (cwd === undefined) {
@@ -167,7 +167,7 @@ export class BuildRunnerWatch {
     const cmd = command(cmdToUse);
     const args: string[] = [...pubCommand(cmdToUse), "build_runner", "watch"];
     const opts: cp.SpawnOptionsWithoutStdio = { cwd: cwd };
-    if (config.get("useDeleteConflictingOutputs.watch") === true) { args.push("--delete-conflicting-outputs"); }
+    if (settings.useDeleteConflictingOutputs.watch) { args.push(deleteConflictingOutputsSuffix); }
 
     log(`Spawning \`${cmd} ${args.join(' ')}\` in \`${opts.cwd}\``);
 

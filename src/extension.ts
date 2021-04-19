@@ -1,62 +1,17 @@
 import * as vscode from 'vscode';
+import { command, COMMANDS, deleteConflictingOutputsSuffix, isLinux, log, pubCommand, settings } from './utils';
 import { BuildRunnerWatch } from './watch';
 import p = require('path');
 import fs = require('fs');
 import cp = require('child_process');
 
-
-type ShellCommands = "flutter" | "dart";
-
-export function pubCommand(shellCommand: ShellCommands): string[] {
-	switch (shellCommand) {
-		case "dart":
-			return ["run"];
-		case "flutter":
-			return ["pub", "run"];
-	}
-}
-
-export function command(shellCommand: ShellCommands): string {
-	switch (shellCommand) {
-		case "dart":
-			return batchCommand("dart");
-		case "flutter":
-			return settings.flutterPath ?? batchCommand("flutter");
-	}
-}
-
-export const output = vscode.window.createOutputChannel("build_runner");
-export const extensionID = "build-runner";
-export const COMMANDS = {
-	watch: `${extensionID}.watch`,
-	build: `${extensionID}.build`,
-	buildFilters: `${extensionID}.build_filters`,
-};
-export const settings = {
-	get commandToUse() { return vscode.workspace.getConfiguration(extensionID).get<ShellCommands>("commandToUse", "flutter"); },
-	setCommandToUse(cmd: ShellCommands) { return vscode.workspace.getConfiguration(extensionID).update("commandToUse", cmd); },
-
-	get flutterPath() {
-		const p = vscode.workspace.getConfiguration(extensionID).get<string | undefined>("flutterPath");
-		return p === "" ? undefined : p;
-	},
-	setFlutterPath(path: string) { return vscode.workspace.getConfiguration(extensionID).update("flutterPath", path); },
-};
-export function log(s: any, show?: boolean) {
-	console.log(s);
-	output.appendLine(s);
-	if (show === true) { output.show(); }
-}
-export const isWin32 = process.platform === "win32";
-export const isLinux = process.platform === "linux";
-const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
-
 export function activate(context: vscode.ExtensionContext) {
-
 	const watch = new BuildRunnerWatch(context);
 	watch.show();
 
-	const watchBuildRunner = vscode.commands.registerCommand(COMMANDS.watch, async () => await watch.toggle());
+	const watchBuildRunner = vscode.commands.registerCommand(COMMANDS.watch, async () =>
+		await watch.toggle()
+	);
 
 	const activateBuilder = vscode.commands.registerCommand(COMMANDS.build, async () =>
 		await buildRunnerBuild({ useFilters: false })
@@ -66,13 +21,10 @@ export function activate(context: vscode.ExtensionContext) {
 		await buildRunnerBuild({ useFilters: true })
 	);
 
-
 	context.subscriptions.push(watchBuildRunner, activateBuilder, activateFastBuilder);
 }
 
-interface BuildRunnerOptions { useFilters: boolean }
-async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
-	const config = vscode.workspace.getConfiguration(extensionID);
+async function buildRunnerBuild(opt: { useFilters: boolean }) {
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
 
 	let cwd = getDartProjectPath();
@@ -87,13 +39,13 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	if (cwd === undefined) { log('Failed to infer where to run build_runner.'); return; }
 	console.log(`cwd=${cwd}`);
 
-	const filters = useFilters ? getFilters(cwd) : null;
+	const filters = opt.useFilters ? getFilters(cwd) : null;
 
 	const cmdToUse = settings.commandToUse;
 	const cmd = command(cmdToUse);
 	let args: string[] = [...pubCommand(cmdToUse), "build_runner", "build"];
 
-	if (config.get("useDeleteConflictingOutputs.build") === true) { args.push("--delete-conflicting-outputs"); }
+	if (settings.useDeleteConflictingOutputs.build) { args.push(deleteConflictingOutputsSuffix); }
 	filters?.forEach(f => {
 		args.push("--build-filter");
 		args.push(f);
@@ -101,7 +53,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 
 
 	await vscode.window.withProgress(opts, async (p, _token) => {
-		p.report({ message: "Initializing ..." });
+		p.report({ message: "Starting build ..." });
 		await new Promise<void>(async (r) => {
 
 			log(`Spawning \`${cmd} ${args.join(" ")}\` in \`${cwd}\``);
@@ -135,10 +87,10 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 				r();
 
 				if (code !== 0) {
-					await vscode.window.showErrorMessage("Failed: " + mergedErr, "Close");
+					let showError = true;
 
-					const path = process.env.PATH;
-					if (isLinux && settings.commandToUse === "flutter" && !path?.includes("flutter") && settings.flutterPath === undefined) {
+					if (isLinux && mergedErr === "" && (settings.commandToUse === "flutter" && settings.flutterPath === undefined)) {
+						showError = false;
 						const selectFlutter = "Enter flutter path";
 						const res = await vscode.window.showInformationMessage("Flutter doesn't seem to be in the path. You probably installed Flutter using snap.", selectFlutter);
 						if (res === selectFlutter) {
@@ -149,7 +101,6 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 							}
 						}
 					}
-
 					if (
 						settings.commandToUse === "dart" &&
 						(mergedErr.includes("Could not find a file") || mergedErr.includes("pubspec.yaml"))
@@ -158,9 +109,12 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 						const res = await vscode.window.showInformationMessage("You seem to have an issue with dart, do you want to try to use flutter instead ?", switchToFlutter);
 						if (res === switchToFlutter) {
 							await settings.setCommandToUse("flutter");
-							buildRunnerBuild({ useFilters: useFilters });
+							buildRunnerBuild(opt);
 						}
 					}
+
+					if (showError) { await vscode.window.showErrorMessage("Build failed: " + mergedErr, "Close"); }
+
 				} else {
 					vscode.window.showInformationMessage(lastOut);
 				}
