@@ -61,7 +61,8 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 			const child = cp.spawn(
 				cmd,
 				args,
-				{ cwd: cwd });
+				{ cwd: cwd },
+			);
 
 			let mergedErr = "";
 			let lastOut: string;
