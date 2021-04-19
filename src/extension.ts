@@ -69,8 +69,9 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 	}
 
 	if (cwd === undefined) { log('Failed to infer where to run build_runner.'); return; }
-	const filters = useFilters ? getFilters(cwd) : null;
 	console.log(`cwd=${cwd}`);
+
+	const filters = useFilters ? getFilters(cwd) : null;
 
 	const cmdToUse = settings.commandToUse;
 	const cmd = batchCommand(cmdToUse);
@@ -87,25 +88,30 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 		p.report({ message: "Initializing ..." });
 		await new Promise<void>(async (r) => {
 
-			log(`Spawning \`${cmd} ${args.join(" ")}\` in ${cwd}`);
+			log(`Spawning \`${cmd} ${args.join(" ")}\` in \`${cwd}\``);
 			const child = cp.spawn(
 				cmd,
 				args,
 				{ cwd: cwd });
-			console.log("Ran " + child.spawnargs.join(' '));
 
 			let mergedErr = "";
 			let lastOut: string;
 
 			child.stdout.on('data', (data) => {
-				console.log('stdout: ' + data.toString());
-				p.report({ message: data.toString() });
 				lastOut = data.toString();
+				console.log('stdout: ' + lastOut);
+				p.report({ message: lastOut });
 			});
 
 			child.stderr.on('data', (data) => {
 				console.log('stderr: ' + data.toString());
 				mergedErr += data;
+			});
+
+			child.on("error", async (err) => {
+				console.log(`PATH=${process.env.PATH}`);
+				console.error(err);
+				r();
 			});
 
 			child.on('close', async (code) => {
@@ -128,9 +134,7 @@ async function buildRunnerBuild({ useFilters }: BuildRunnerOptions) {
 					vscode.window.showInformationMessage(lastOut);
 				}
 			});
-
 		});
-
 	});
 }
 

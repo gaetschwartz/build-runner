@@ -161,7 +161,7 @@ export class BuildRunnerWatch {
       if (uri === undefined) { return; } else { cwd = uri.fsPath; }
     }
 
-    console.log("cwd: " + cwd);
+    console.log(`cwd=${cwd}`);
 
     const cmdToUse = settings.commandToUse;
     const cmd = batchCommand(cmdToUse);
@@ -169,7 +169,7 @@ export class BuildRunnerWatch {
     const opts: cp.SpawnOptionsWithoutStdio = { cwd: cwd };
     if (config.get("useDeleteConflictingOutputs.watch") === true) { args.push("--delete-conflicting-outputs"); }
 
-    log(`Spawning \`${cmd} ${args.join(' ')}\` in ${opts.cwd}`);
+    log(`Spawning \`${cmd} ${args.join(' ')}\` in \`${opts.cwd}\``);
 
     this.process = cp.spawn(cmd, args, opts);
     this.setState(State.initializing);
