@@ -39,7 +39,7 @@ const SETTINGS_KEYS = {
 };
 
 
-export const deleteConflictingOutputsSuffix = "--delete -conflicting - outputs";
+export const deleteConflictingOutputsSuffix = "--delete-conflicting-outputs";
 
 
 export const settings = {
