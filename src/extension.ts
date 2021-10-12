@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { command, COMMANDS, deleteConflictingOutputsSuffix, isLinux, log, pubCommand, settings } from './utils';
 import { BuildRunnerWatch } from './watch';
+import { DartFlutterCommand } from './utils';
 import p = require('path');
 import fs = require('fs');
 import cp = require('child_process');
@@ -212,6 +213,19 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 	return buildFilters;
 }
 
+export function getCommandFromPubspec(path: string | undefined): DartFlutterCommand | undefined {
+	if (path === undefined) { return undefined; }
+	const pubspecSuffix = 'pubspec.yaml';
+	const pubspecLines = fs.readFileSync(p.join(path, pubspecSuffix), 'utf-8').split('\n');
+	const flutterSDKRegex = /sdk:[ ]*flutter/;
+	for (const line of pubspecLines){
+		if (line.match(flutterSDKRegex) !== null){
+			return 'flutter';
+		}
+	}
+	return 'dart';
+}
+
 export function getDartProjectPath(): string | undefined {
 	// The code you place here will be executed every time your command is executed
 	const document = vscode.window.activeTextEditor?.document;
@@ -254,14 +268,14 @@ export function getDartProjectPath(): string | undefined {
 
 	if (fs.existsSync(workspacePath! + pubspecSuffix)) { return workspacePath; }
 
-	const walkSegments: string[] = [];
-	for (let i = 0; i < segments.length; i++) {
+	const walkSegments: string[] = [...segments];
+	for (let i = segments.length; i >= 0; i--) {
 		const s = segments[i];
 		const projectPath = vscode.Uri.file(p.join(workspacePath, ...walkSegments));
 		const pubspec = vscode.Uri.joinPath(projectPath, pubspecSuffix);
 		console.log('Looking for ' + pubspec.fsPath);
 		if (fs.existsSync(pubspec.fsPath)) { console.log('Found it!'); return projectPath.fsPath; }
-		walkSegments.push(s);
+		walkSegments.pop();
 	}
 	return undefined;
 }

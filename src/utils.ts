@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-type DartFlutterCommand = "flutter" | "dart";
+export type DartFlutterCommand = "flutter" | "dart";
 
 export function pubCommand(shellCommand: DartFlutterCommand): string[] {
   switch (shellCommand) {
