@@ -155,7 +155,7 @@ export class BuildRunnerWatch {
     }
 
     let cwd = getDartProjectPath();
-    let cmdToUse = getCommandFromPubspec(cwd) || settings.commandToUse;
+    const cmdToUse = getCommandFromPubspec(cwd) || settings.commandToUse;
     
     if (cwd === undefined) {
       const uri = await this.queryProject();

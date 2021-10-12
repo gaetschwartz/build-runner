@@ -42,7 +42,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 
 	const filters = opt.useFilters ? getFilters(cwd) : null;
 
-	const cmdToUse = settings.commandToUse;
+	const cmdToUse = getCommandFromPubspec(cwd) || settings.commandToUse;
 	const cmd = command(cmdToUse);
 	let args: string[] = [...pubCommand(cmdToUse), "build_runner", "build"];
 
