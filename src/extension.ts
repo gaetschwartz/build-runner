@@ -270,7 +270,6 @@ export function getDartProjectPath(): string | undefined {
 
 	const walkSegments: string[] = [...segments];
 	for (let i = segments.length; i >= 0; i--) {
-		const s = segments[i];
 		const projectPath = vscode.Uri.file(p.join(workspacePath, ...walkSegments));
 		const pubspec = vscode.Uri.joinPath(projectPath, pubspecSuffix);
 		console.log('Looking for ' + pubspec.fsPath);
