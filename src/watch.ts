@@ -3,7 +3,7 @@ import { getCommandFromPubspec, getDartProjectPath } from './extension';
 import { SigintSender } from './sigint';
 import { command, COMMANDS, deleteConflictingOutputsSuffix, isWin32, log, output, pubCommand, settings } from "./utils";
 import cp = require('child_process');
-import fs = require('fs');
+
 enum State { initializing, watching, idle, }
 
 const timeout = <T>(prom: Promise<T>, time: number) =>
@@ -156,14 +156,14 @@ export class BuildRunnerWatch {
 
     let cwd = getDartProjectPath();
     const cmdToUse = getCommandFromPubspec(cwd) || settings.commandToUse;
-    
+
     if (cwd === undefined) {
       const uri = await this.queryProject();
       if (uri === undefined) { return; } else { cwd = uri.fsPath; }
     }
-    
 
-    console.log(`cwd=${cwd}`);    
+
+    console.log(`cwd=${cwd}`);
 
     const cmd = command(cmdToUse);
     const args: string[] = [...pubCommand(cmdToUse), "build_runner", "watch"];
