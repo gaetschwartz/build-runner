@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import { command, COMMANDS, deleteConflictingOutputsSuffix, isLinux, log, pubCommand, settings } from './utils';
 import { BuildRunnerWatch } from './watch';
+import { DartFlutterCommand } from './utils';
 import p = require('path');
+const yaml = require('js-yaml');
 import fs = require('fs');
 import cp = require('child_process');
 
@@ -41,7 +43,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 
 	const filters = opt.useFilters ? getFilters(cwd) : null;
 
-	const cmdToUse = settings.commandToUse;
+	const cmdToUse = getCommandFromPubspec(cwd) || settings.commandToUse;
 	const cmd = command(cmdToUse);
 	let args: string[] = [...pubCommand(cmdToUse), "build_runner", "build"];
 
@@ -212,6 +214,23 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 	return buildFilters;
 }
 
+export function getCommandFromPubspec(path: string | undefined): DartFlutterCommand | undefined {
+	if (path === undefined) { return undefined; }
+
+	try {
+		// Load the pubspec.yaml file
+		const doc = yaml.load(fs.readFileSync(p.join(path, "pubspec.yaml"), 'utf8'));
+		if (doc.dependencies?.flutter?.sdk === 'flutter') {
+			// return flutter if the flutter sdk is set in the pubspec.yaml
+			return 'flutter';
+		}
+		return 'dart';
+	} catch (e) {
+		console.log(e);
+		return undefined;
+	}
+}
+
 export function getDartProjectPath(): string | undefined {
 	// The code you place here will be executed every time your command is executed
 	const document = vscode.window.activeTextEditor?.document;
@@ -254,14 +273,13 @@ export function getDartProjectPath(): string | undefined {
 
 	if (fs.existsSync(workspacePath! + pubspecSuffix)) { return workspacePath; }
 
-	const walkSegments: string[] = [];
-	for (let i = 0; i < segments.length; i++) {
-		const s = segments[i];
+	const walkSegments: string[] = [...segments];
+	for (let i = segments.length - 1; i >= 0; i--) {
 		const projectPath = vscode.Uri.file(p.join(workspacePath, ...walkSegments));
 		const pubspec = vscode.Uri.joinPath(projectPath, pubspecSuffix);
 		console.log('Looking for ' + pubspec.fsPath);
 		if (fs.existsSync(pubspec.fsPath)) { console.log('Found it!'); return projectPath.fsPath; }
-		walkSegments.push(s);
+		walkSegments.pop();
 	}
 	return undefined;
 }
