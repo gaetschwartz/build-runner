@@ -4,7 +4,7 @@ import { BuildRunnerWatch } from './watch';
 import { DartFlutterCommand } from './utils';
 import p = require('path');
 const yaml = require('js-yaml');
-const fs = require('fs');
+import fs = require('fs');
 import cp = require('child_process');
 
 export function activate(context: vscode.ExtensionContext) {
