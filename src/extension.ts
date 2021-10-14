@@ -3,7 +3,8 @@ import { command, COMMANDS, deleteConflictingOutputsSuffix, isLinux, log, pubCom
 import { BuildRunnerWatch } from './watch';
 import { DartFlutterCommand } from './utils';
 import p = require('path');
-import fs = require('fs');
+const yaml = require('js-yaml');
+const fs = require('fs');
 import cp = require('child_process');
 
 export function activate(context: vscode.ExtensionContext) {
@@ -215,15 +216,19 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 
 export function getCommandFromPubspec(path: string | undefined): DartFlutterCommand | undefined {
 	if (path === undefined) { return undefined; }
-	const pubspecSuffix = 'pubspec.yaml';
-	const pubspecLines = fs.readFileSync(p.join(path, pubspecSuffix), 'utf-8').split('\n');
-	const flutterSDKRegex = /sdk:[ ]*flutter/;
-	for (const line of pubspecLines){
-		if (line.match(flutterSDKRegex) !== null){
+
+	try {
+		// Load the pubspec.yaml file
+		const doc = yaml.load(fs.readFileSync(p.join(path, "pubspec.yaml"), 'utf8'));
+		if (doc.dependencies?.flutter?.sdk === 'flutter') {
+			// return flutter if the flutter sdk is set in the pubspec.yaml
 			return 'flutter';
 		}
+		return 'dart';
+	} catch (e) {
+		console.log(e);
+		return undefined;
 	}
-	return 'dart';
 }
 
 export function getDartProjectPath(): string | undefined {
