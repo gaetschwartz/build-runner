@@ -2,8 +2,6 @@
 
 All notable changes to the "build-runner" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [0.3.6]
 
-## [Unreleased]
-
-- Initial release
+- Find pubspec in subfolder first ([#5](https://github.com/gaetschwartz/build-runner/pull/5))
