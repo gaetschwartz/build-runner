@@ -30,7 +30,7 @@ export class ChildProcessWrapper {
     if (isWin32) {
 
       const res = cp.execSync(
-        `(Get-WmiObject Win32_Process -Filter "ParentProcessID=${ppid}" | Select ProcessID, ProcessName | Where-Object {$_.ProcessName -eq 'dart.exe'} | Select-Object -first 1).ProcessId`,
+        `(Get-WmiObject Win32_Process -Filter "ParentProcessID=${ppid}" | Where CommandLine -like '*build_runner watch*').ProcessId`,
         { encoding: "utf8", shell: "powershell.exe" }
       );
       console.log(parseInt(res));
