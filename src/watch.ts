@@ -1,8 +1,10 @@
+import { ChildProcessWithoutNullStreams, SpawnOptionsWithoutStdio } from 'child_process';
+import { SIGINT } from 'constants';
 import * as vscode from 'vscode';
 import { getCommandFromPubspec, getDartProjectPath } from './extension';
+import { ChildProcessWrapper } from './process';
 import { SigintSender } from './sigint';
 import { command, COMMANDS, deleteConflictingOutputsSuffix, isWin32, log, output, pubCommand, settings } from "./utils";
-import cp = require('child_process');
 
 enum State { initializing, watching, idle, }
 
@@ -15,6 +17,8 @@ interface ExitData extends Object {
 }
 
 const exitDataToString = (d: ExitData) => `{code: ${d.code}, signal: ${d.signal}}`;
+
+const cp = new ChildProcessWrapper(true);
 
 export class BuildRunnerWatch {
 
@@ -34,7 +38,7 @@ export class BuildRunnerWatch {
   }
 
   state: State = State.idle;
-  process: cp.ChildProcessWithoutNullStreams | undefined;
+  process: ChildProcessWithoutNullStreams | undefined;
 
   readonly watchString = "$(eye) Watch";
   readonly loadingString = "$(loading~spin) Initializing";
@@ -100,41 +104,19 @@ export class BuildRunnerWatch {
     }
   }
 
-  getChildPID(): string | undefined {
-    if (this.process !== undefined) {
-      const ppid = this.process!.pid;
-      if (isWin32) {
-        const res = cp.execSync(`wmic process where("ParentProcessId=${ppid}") get Caption,ProcessId`, {
-          encoding: "utf8", shell: "powershell.exe",
-        });
-        //console.log(res);
-        const match = res.match(/dart.exe\s+(\d+)/);
-        console.log(match);
-        if (match === null) {
-          console.log('No matches');
-          return undefined;
-        }
-        return match[1];
-      } else {
-        const res = cp.execSync(`ps xao pid,ppid | grep "\d* ${ppid}"`, { encoding: "utf8" });
-        return res.split(' ')[0];
-      }
-    }
-  }
+
 
   async killWatch(): Promise<void> {
     if (this.process !== undefined) {
       console.log('Going to try to kill the watch...');
       console.log('PID of parent is ' + this.process.pid);
-      const pid = this.getChildPID()!;
+      const pid = cp.getChildPID(this.process)!;
       console.log('PID of actual process is ' + pid);
-      if (isWin32) {
-        await this.sigintSender.send(pid);
-      } else {
-        cp.spawnSync("kill", ["-SIGINT", `${pid}`]);
-      }
+      cp.killPid(pid);
     }
+    this.process?.kill(SIGINT);
   }
+
 
   async queryProject(): Promise<vscode.Uri | undefined> {
     const choose = "Choose a folder";
@@ -145,12 +127,13 @@ export class BuildRunnerWatch {
     return uri[0];
   }
 
+
   async watch(): Promise<void> {
     output.clear();
 
     if (isWin32) {
       const risk = "I take the risk.";
-      const res = await vscode.window.showWarningMessage("Using `dart run build_runner watch` on Windows is broken for the moment. Starting it works fine but you won't be able quit the watch easily.", risk);
+      const res = await vscode.window.showWarningMessage("Using `build_runner watch` on Windows is still in BETA. There might be issues with stopping the watch which might cause further issues.", risk);
       if (res !== risk) { return; }
     }
 
@@ -159,7 +142,11 @@ export class BuildRunnerWatch {
 
     if (cwd === undefined) {
       const uri = await this.queryProject();
-      if (uri === undefined) { return; } else { cwd = uri.fsPath; }
+      if (uri === undefined) {
+        return;
+      } else {
+        cwd = uri.fsPath;
+      }
     }
 
 
@@ -167,7 +154,7 @@ export class BuildRunnerWatch {
 
     const cmd = command(cmdToUse);
     const args: string[] = [...pubCommand(cmdToUse), "build_runner", "watch"];
-    const opts: cp.SpawnOptionsWithoutStdio = { cwd: cwd };
+    const opts: SpawnOptionsWithoutStdio = { cwd: cwd };
     if (settings.useDeleteConflictingOutputs.watch) { args.push(deleteConflictingOutputsSuffix); }
 
     log(`Spawning \`${cmd} ${args.join(' ')}\` in \`${opts.cwd}\``);
@@ -201,14 +188,15 @@ export class BuildRunnerWatch {
     this.process.on('close', (code) => {
       console.log("close: " + code);
 
-      if (code !== 0) {
+      if (code !== null && code !== 0) {
         output.appendLine("\nCommand exited with code " + code);
         output.show();
       }
 
-      // cleanup
       this.process = undefined;
       this.setState(State.idle);
     });
   }
 }
+
+

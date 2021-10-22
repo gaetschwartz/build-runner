@@ -1,5 +1,5 @@
-import * as vscode from 'vscode';
 
+import * as vscode from 'vscode';
 export type DartFlutterCommand = "flutter" | "dart";
 
 export function pubCommand(shellCommand: DartFlutterCommand): string[] {
@@ -68,3 +68,4 @@ export function log(s: any, show?: boolean) {
 export const isWin32 = process.platform === "win32";
 export const isLinux = process.platform === "linux";
 const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
+
