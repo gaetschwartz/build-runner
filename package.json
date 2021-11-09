@@ -23,7 +23,7 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "workspaceContains:**/pubspec.yaml"
   ],
   "main": "./out/extension.js",
   "contributes": {
