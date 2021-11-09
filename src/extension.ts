@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { command, COMMANDS, DartFlutterCommand, deleteConflictingOutputsSuffix, isLinux, log, pubCommand, settings } from './utils';
+import { command, COMMANDS, DartFlutterCommand, deleteConflictingOutputsSuffix, isLinux, log, output, pubCommand, settings } from './utils';
 import { BuildRunnerWatch } from './watch';
 import p = require('path');
-const yaml = require('js-yaml');
+import yaml = require('js-yaml');
 import fs = require('fs');
 import cp = require('child_process');
 
@@ -72,6 +72,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 				lastOut = data.toString();
 				console.log('stdout: ' + lastOut);
 				p.report({ message: lastOut });
+				output.append(lastOut);
 			});
 
 			child.stderr.on('data', (data) => {
@@ -81,6 +82,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 
 			child.on("error", (err) => {
 				console.error(err);
+				output.append(err.toString());
 				r();
 			});
 
@@ -218,7 +220,7 @@ export function getCommandFromPubspec(path: string | undefined): DartFlutterComm
 
 	try {
 		// Load the pubspec.yaml file
-		const doc = yaml.load(fs.readFileSync(p.join(path, "pubspec.yaml"), 'utf8'));
+		const doc: any = yaml.load(fs.readFileSync(p.join(path, "pubspec.yaml"), 'utf8'));
 		if (doc.dependencies?.flutter?.sdk === 'flutter') {
 			// return flutter if the flutter sdk is set in the pubspec.yaml
 			return 'flutter';
