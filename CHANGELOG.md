@@ -2,8 +2,11 @@
 
 All notable changes to the "build-runner" extension will be documented in this file.
 
+## [0.7.1]
 
-## [0.5.0]
+ - Improved error feedback and progress status
+
+## [0.7.0]
 
 - Improved watch on Windows. Now almost fully operational.
 - Fixed issue with finding the project

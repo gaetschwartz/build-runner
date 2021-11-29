@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { command, COMMANDS, DartFlutterCommand, deleteConflictingOutputsSuffix, isLinux, log, output, pubCommand, settings } from './utils';
+import { command, COMMANDS, DartFlutterCommand, deleteConflictingOutputsSuffix, inferProgress, isLinux, log, output, pubCommand, settings } from './utils';
 import { BuildRunnerWatch } from './watch';
 import p = require('path');
 import yaml = require('js-yaml');
@@ -37,7 +37,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 		}
 	}
 
-	if (cwd === undefined) { log('Failed to infer where to run build_runner.'); return; }
+	if (cwd === undefined) { log('Failed to infer where to run build_runner.', true); return; }
 	console.log(`cwd=${cwd}`);
 
 	const filters = opt.useFilters ? getFilters(cwd) : null;
@@ -55,9 +55,12 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 
 	await vscode.window.withProgress(opts, async (p, _token) => {
 		p.report({ message: "Starting build ..." });
+		let progress = 0;
+		let hasDoneSetup = false;
 		await new Promise<void>(async (r) => {
 
-			log(`Spawning \`${cmd} ${args.join(" ")}\` in \`${cwd}\``);
+			log(`Running \`${cmd} ${args.join(" ")}\``);
+			log(`in \`${cwd}\``);
 
 			const child = cp.spawn(
 				cmd,
@@ -71,7 +74,16 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 			child.stdout.on('data', (data) => {
 				lastOut = data.toString();
 				console.log('stdout: ' + lastOut);
-				p.report({ message: lastOut });
+				const prog = inferProgress(lastOut);
+				let delta = prog === undefined ? undefined : prog - progress;
+				if (prog !== undefined) {
+					if (!hasDoneSetup) {
+						hasDoneSetup = true;
+						if (delta !== undefined) { delta += 5; }
+					}
+					progress = prog;
+				}
+				p.report({ message: lastOut, increment: delta });
 				output.append(lastOut);
 			});
 
@@ -92,7 +104,6 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 
 				if (code !== 0) {
 					let showError = true;
-
 					if (isLinux && mergedErr === "" && (settings.commandToUse === "flutter" && settings.flutterPath === undefined)) {
 						showError = false;
 						const selectFlutter = "Enter flutter path";
@@ -117,7 +128,10 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 						}
 					}
 
-					if (showError) { await vscode.window.showErrorMessage("Build failed: " + mergedErr, "Close"); }
+					if (showError) {
+						output.show();
+						await vscode.window.showErrorMessage("Build failed. See output for details.");
+					}
 
 				} else {
 					vscode.window.showInformationMessage(lastOut);
@@ -286,3 +300,6 @@ export function getDartProjectPath(): string | undefined {
 }
 
 export function deactivate() { }
+
+
+

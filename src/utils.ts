@@ -69,3 +69,16 @@ export const isWin32 = process.platform === "win32";
 export const isLinux = process.platform === "linux";
 const batchCommand = (cmd: string): string => isWin32 ? cmd + ".bat" : cmd;
 
+export function inferProgress(text: string): number | undefined {
+  // match progress like: [INFO] 34.6s elapsed, 327/343 actions completed.
+  const match = text.match(/(\d+)\s*\/\s*(\d+)\s+actions\s+completed/);
+  if (match) {
+    const [, completed, total] = match;
+    return 100 * parseInt(completed) / parseInt(total);
+  }
+}
+
+export function add(a: number | undefined, b: number): number | undefined {
+  if (a === undefined) { return undefined; }
+  return a + b;
+}
