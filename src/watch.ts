@@ -112,7 +112,9 @@ export class BuildRunnerWatch {
       console.log('PID of parent is ' + this.process.pid);
       const pid = cp.getChildPID(this.process)!;
       console.log('PID of actual process is ' + pid);
-      cp.killPid(pid);
+      if (pid !== undefined) {
+        cp.killPid(pid);
+      }
     }
     this.process?.kill(SIGINT);
   }

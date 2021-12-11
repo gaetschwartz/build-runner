@@ -1,5 +1,5 @@
 import cp = require('child_process');
-import { isWin32 } from './utils';
+import { isWin32, isLinux } from './utils';
 
 
 
@@ -28,20 +28,22 @@ export class ChildProcessWrapper {
       return undefined;
     }
     if (isWin32) {
-
       const res = cp.execSync(
         `(Get-WmiObject Win32_Process -Filter "ParentProcessID=${ppid}" | Where CommandLine -like '*build_runner watch*').ProcessId`,
         { encoding: "utf8", shell: "powershell.exe" }
       );
       console.log(parseInt(res));
       return res;
-    } else {
+    } else if (isLinux) {
       const res = this.execSync(`ps xao pid,ppid | grep -E "[[:digit:]]+[ ]+${ppid}"`);
-      // ps returns
+      // ps on linux with /bin/sh which is the shell child_process
+      // returns the following format
       //    PID      PPID
       //[ ]+[\d]+[ ]+[\d]+
       return res.split(/[ ]+/)[1];
     }
+    // MacOS doesn't show any child PIDs for build_runner 
+    return undefined;
   }
 
 
