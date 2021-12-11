@@ -36,8 +36,11 @@ export class ChildProcessWrapper {
       console.log(parseInt(res));
       return res;
     } else {
-      const res = this.execSync(`ps xao pid,ppid | grep "\d* ${ppid}"`);
-      return res.split(' ')[0];
+      const res = this.execSync(`ps xao pid,ppid | grep -E "[[:digit:]]+[ ]+${ppid}"`);
+      // ps returns
+      //    PID      PPID
+      //[ ]+[\d]+[ ]+[\d]+
+      return res.split(/[ ]+/)[1];
     }
   }
 
@@ -47,7 +50,7 @@ export class ChildProcessWrapper {
     if (isWin32) {
       return this.execSync(`taskkill /F /PID ${pid}`);
     } else {
-      return this.execSync(`kill -SIGINT ${pid}`);
+      return this.execSync(`kill -INT ${pid}`);
     }
   }
 
