@@ -230,7 +230,7 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 }
 
 export function getCommandFromPubspec(path: string | undefined): DartFlutterCommand | undefined {
-	if (path === undefined) { return undefined; }
+	if (!settings.doInferCommandToUse || path === undefined) { return undefined; }
 
 	try {
 		// Load the pubspec.yaml file

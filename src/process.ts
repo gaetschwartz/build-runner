@@ -1,5 +1,5 @@
 import cp = require('child_process');
-import { isWin32, isLinux } from './utils';
+import { isWin32 } from './utils';
 
 
 
@@ -20,9 +20,8 @@ export class ChildProcessWrapper {
     return cp.spawn(command, args, options);
   }
 
-  getChildPID(process: cp.ChildProcessWithoutNullStreams | undefined): string | undefined {
-    if (process === undefined) { return undefined; }
-    const ppid = process.pid;
+  getChildPID(ppid: string | undefined): string | undefined {
+
     if (ppid === undefined) {
       console.error("undefined ppid !");
       return undefined;
@@ -34,16 +33,15 @@ export class ChildProcessWrapper {
       );
       console.log(parseInt(res));
       return res;
-    } else if (isLinux) {
-      const res = this.execSync(`ps xao pid,ppid | grep -E "[[:digit:]]+[ ]+${ppid}"`);
-      // ps on linux with /bin/sh which is the shell child_process
-      // returns the following format
-      //    PID      PPID
-      //[ ]+[\d]+[ ]+[\d]+
-      return res.split(/[ ]+/)[1];
+    } else {
+      const res = this.execSync(`pgrep -P ${ppid}`);
+      const match = res.match(/[\d]+/g);
+      if (match === null) {
+        console.error("No match for PID");
+        return undefined;
+      }
+      return match[0];
     }
-    // MacOS doesn't show any child PIDs for build_runner 
-    return undefined;
   }
 
 

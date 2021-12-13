@@ -20,7 +20,7 @@ export function command(shellCommand: DartFlutterCommand): string {
   }
 }
 
-export const output = vscode.window.createOutputChannel("build_runner");
+export const output = vscode.window.createOutputChannel("Build Runner");
 
 const extensionID = "build-runner";
 export const COMMANDS = {
@@ -32,6 +32,7 @@ export const COMMANDS = {
 const SETTINGS_KEYS = {
   commandToUse: "commandToUse",
   flutterPath: "flutterPath",
+  inferCommandToUse: "inferCommandToUse",
   useDeleteConflictingOutputs: {
     build: "useDeleteConflictingOutputs.build",
     watch: "useDeleteConflictingOutputs.watch"
@@ -47,6 +48,9 @@ export const settings = {
 
   get commandToUse() { return this.config.get<DartFlutterCommand>(SETTINGS_KEYS.commandToUse, "flutter"); },
   setCommandToUse(cmd: DartFlutterCommand) { return this.config.update(SETTINGS_KEYS.commandToUse, cmd); },
+
+  get doInferCommandToUse() { return this.config.get<boolean>(SETTINGS_KEYS.inferCommandToUse, true); },
+  setDoInferCommandToUse(value: boolean) { return this.config.update(SETTINGS_KEYS.inferCommandToUse, value); },
 
   get flutterPath() {
     const p = this.config.get<string | undefined>(SETTINGS_KEYS.flutterPath);

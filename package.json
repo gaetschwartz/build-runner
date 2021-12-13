@@ -55,13 +55,18 @@
         },
         "build-runner.useDeleteConflictingOutputs.build": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "markdownDescription": "Use `--delete-conflicting-outputs` for the `build_runner build` command."
         },
         "build-runner.useDeleteConflictingOutputs.watch": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "markdownDescription": "Use `--delete-conflicting-outputs` for the `build_runner watch` command."
+        },
+        "build-runner.inferCommandToUse": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Infer whether to use `flutter` or `dart` based on the content of your project's `pubspec.yaml` file."
         }
       }
     },

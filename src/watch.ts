@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { getCommandFromPubspec, getDartProjectPath } from './extension';
 import { ChildProcessWrapper } from './process';
 import { SigintSender } from './sigint';
-import { command, COMMANDS, deleteConflictingOutputsSuffix, isWin32, log, output, pubCommand, settings } from "./utils";
+import { command, COMMANDS, DartFlutterCommand, deleteConflictingOutputsSuffix, isWin32, log, output, pubCommand, settings } from "./utils";
 
 enum State { initializing, watching, idle, }
 
@@ -39,6 +39,7 @@ export class BuildRunnerWatch {
 
   state: State = State.idle;
   process: ChildProcessWithoutNullStreams | undefined;
+  command: DartFlutterCommand | undefined;
 
   readonly watchString = "$(eye) Watch";
   readonly loadingString = "$(loading~spin) Initializing";
@@ -110,7 +111,19 @@ export class BuildRunnerWatch {
     if (this.process !== undefined) {
       console.log('Going to try to kill the watch...');
       console.log('PID of parent is ' + this.process.pid);
-      const pid = cp.getChildPID(this.process)!;
+      let pid: string | undefined = cp.getChildPID(this.process?.pid?.toString());
+      // when using flutter, the pid tree is like this:
+      //  \-+- ${process.pid}  bash <flutter_path>/bin/flutter pub run build_runner watch
+      //   \-+- child_pid1      <flutter_path>/bin/cache/dart-sdk/bin/dart --disable-dart-dev --packages=<flutter_path>/packages/flutter_tools/.packages <flutter_path>/bin/cache/flutter_tools.snapshot pub run build_runner watch
+      //    \--- child_pid2      <flutter_path>/bin/cache/dart-sdk/bin/dart __deprecated_pub run build_runner watch
+      // we thus need to kill child_pid2 by finding process.pid's grandchild
+      if (this.command === "flutter") {
+        const newPid = cp.getChildPID(pid);
+        if (newPid !== undefined) {
+          pid = newPid;
+        }
+      }
+
       console.log('PID of actual process is ' + pid);
       if (pid !== undefined) {
         cp.killPid(pid);
@@ -140,7 +153,6 @@ export class BuildRunnerWatch {
     }
 
     let cwd = getDartProjectPath();
-    const cmdToUse = getCommandFromPubspec(cwd) || settings.commandToUse;
 
     if (cwd === undefined) {
       const uri = await this.queryProject();
@@ -150,12 +162,12 @@ export class BuildRunnerWatch {
         cwd = uri.fsPath;
       }
     }
-
-
     console.log(`cwd=${cwd}`);
 
-    const cmd = command(cmdToUse);
-    const args: string[] = [...pubCommand(cmdToUse), "build_runner", "watch"];
+    this.command = getCommandFromPubspec(cwd) || settings.commandToUse;
+
+    const cmd = command(this.command);
+    const args: string[] = [...pubCommand(this.command), "build_runner", "watch"];
     const opts: SpawnOptionsWithoutStdio = { cwd: cwd };
     if (settings.useDeleteConflictingOutputs.watch) { args.push(deleteConflictingOutputsSuffix); }
 
