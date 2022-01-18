@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function buildRunnerBuild(opt: { useFilters: boolean }) {
 	const opts: vscode.ProgressOptions = { location: vscode.ProgressLocation.Notification };
-
+	output.clear();
 	let cwd = getDartProjectPath();
 	if (cwd === undefined) {
 		const selectFolder = "Select folder";
@@ -60,7 +60,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 		await new Promise<void>(async (r) => {
 
 			log(`Running \`${cmd} ${args.join(" ")}\``);
-			log(`in \`${cwd}\``);
+			log(`Current working folder: \`${cwd}\`\n`);
 
 			const child = cp.spawn(
 				cmd,
@@ -89,6 +89,7 @@ async function buildRunnerBuild(opt: { useFilters: boolean }) {
 
 			child.stderr.on('data', (data) => {
 				console.log('stderr: ' + data.toString());
+				output.append(data.toString());
 				mergedErr += data;
 			});
 
