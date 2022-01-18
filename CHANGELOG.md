@@ -1,6 +1,10 @@
 # Change Log
 
 All notable changes to the "build-runner" extension will be documented in this file.
+## [0.8.0]
+
+ - Improved watching using the `watch` command.
+ - Improved general performance and various fixes
 
 ## [0.7.1]
 
