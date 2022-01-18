@@ -20,15 +20,13 @@ export class ChildProcessWrapper {
     return cp.spawn(command, args, options);
   }
 
-  getChildPID(process: cp.ChildProcessWithoutNullStreams | undefined): string | undefined {
-    if (process === undefined) { return undefined; }
-    const ppid = process.pid;
+  getChildPID(ppid: string | undefined): string | undefined {
+
     if (ppid === undefined) {
       console.error("undefined ppid !");
       return undefined;
     }
     if (isWin32) {
-
       const res = cp.execSync(
         `(Get-WmiObject Win32_Process -Filter "ParentProcessID=${ppid}" | Where CommandLine -like '*build_runner watch*').ProcessId`,
         { encoding: "utf8", shell: "powershell.exe" }
@@ -36,8 +34,13 @@ export class ChildProcessWrapper {
       console.log(parseInt(res));
       return res;
     } else {
-      const res = this.execSync(`ps xao pid,ppid | grep "\d* ${ppid}"`);
-      return res.split(' ')[0];
+      const res = this.execSync(`pgrep -P ${ppid}`);
+      const match = res.match(/[\d]+/g);
+      if (match === null) {
+        console.error("No match for PID");
+        return undefined;
+      }
+      return match[0];
     }
   }
 
@@ -47,7 +50,7 @@ export class ChildProcessWrapper {
     if (isWin32) {
       return this.execSync(`taskkill /F /PID ${pid}`);
     } else {
-      return this.execSync(`kill -SIGINT ${pid}`);
+      return this.execSync(`kill -INT ${pid}`);
     }
   }
 
