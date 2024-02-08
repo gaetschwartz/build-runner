@@ -180,7 +180,7 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 	const workspacePath = workspaceFolder?.uri.path;
 	if (workspacePath === undefined) { return []; }
 
-	const relativePath = path!.replace(workspacePath!, "");
+	const relativePath = path!.replace(RegExp(workspacePath, "i")!, "");
 	const segments = relativePath!.split("/").filter((e) => e !== "");
 
 	/// Guard against no top level folder
@@ -221,7 +221,7 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 	const buildFilters = parts!.map((e) => `${bottomLevelFolder}/${e}`).map((e) => {
 		const p = vscode.Uri.file(e).path;
 		if (projPath === undefined) { return p; } else {
-			const rel = p.replace(projPath, "");
+			const rel = p.replace(new RegExp(projPath, "i"), "");
 			const rel2 = rel.startsWith("/") ? rel.slice(1) : rel;
 			return rel2;
 		}
