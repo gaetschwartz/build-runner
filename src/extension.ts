@@ -180,7 +180,7 @@ export function getFilters(projectPath: string | undefined): Array<string> | nul
 	const workspacePath = workspaceFolder?.uri.path;
 	if (workspacePath === undefined) { return []; }
 
-	const relativePath = path!.replace(workspacePath!, "");
+	const relativePath = path!.replace(RegExp(workspacePath, "i")!, "");
 	const segments = relativePath!.split("/").filter((e) => e !== "");
 
 	/// Guard against no top level folder
